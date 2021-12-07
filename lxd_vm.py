@@ -29,6 +29,17 @@ from uuid import uuid4
 DEFAULT_TIMEOUT = 500
 
 
+def get_release_to_test():
+    try:
+        import distro
+        if distro.id() == 'ubuntu-core':
+            return '{}.04'.format(distro.version())
+        return distro.version()
+    except (ImportError, CalledProcessError):
+        import lsb_release
+        return lsb_release.get_distro_information()["RELEASE"]
+
+
 class RunCommand(object):
     """
     Runs a command and can return all needed info:
@@ -304,7 +315,7 @@ def main():
 
     # Main cli options
     lxd_test_vm_parser = subparsers.add_parser(
-        'lxd', help=("Run the LXD VM validation test"))
+        'lxdvm', help=("Run the LXD VM validation test"))
     parser.add_argument('--debug', dest='log_level',
                         action="store_const", const=logging.DEBUG,
                         default=logging.INFO)
