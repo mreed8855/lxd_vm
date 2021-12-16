@@ -301,7 +301,7 @@ def main():
     lxd_test_vm_parser.add_argument(
         '--template', type=str, default=None)
     lxd_test_vm_parser.add_argument(
-        '--rootfs', type=str, default=None)
+        '--image', type=str, default=None)
     lxd_test_vm_parser.set_defaults(func=test_lxd_vm)
 
     args = parser.parse_args()
