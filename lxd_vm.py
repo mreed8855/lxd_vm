@@ -79,12 +79,12 @@ class RunCommand(object):
             print("Install of {} failed".format(sys.stderr))
 
 
-class LXDTest(object):
+class LXDTest_vm(object):
 
-    def __init__(self, template=None, rootfs=None):
-        self.rootfs_url = rootfs
+    def __init__(self, template=None, image=None):
+        self.image_url = image
         self.template_url = template
-        self.rootfs_tarball = None
+        self.image_tarball = None
         self.template_tarball = None
         self.name = 'testbed'
         self.image_alias = uuid4().hex
@@ -137,28 +137,28 @@ class LXDTest(object):
                               "Skipping Download.".format(filename))
                 self.template_tarball = filename
 
-        if self.rootfs_url is not None:
-            logging.debug("Downloading rootfs.")
-            targetfile = urlparse(self.rootfs_url).path.split('/')[-1]
+        if self.image_url is not None:
+            logging.debug("Downloading image.")
+            targetfile = urlparse(self.image_url).path.split('/')[-1]
             filename = os.path.join('/tmp', targetfile)
             if not os.path.isfile(filename):
-                self.rootfs_tarball = self.download_images(self.rootfs_url,
-                                                           filename)
-                if not self.rootfs_tarball:
+                self.image_tarball = self.download_images(self.image_url,
+                                                          filename)
+                if not self.image_tarball:
                     logging.error("Unable to download {} from{}".format(
-                        self.rootfs_tarball, self.rootfs_url))
+                        self.image_tarball, self.image_url))
                     logging.error("Aborting")
                     result = False
             else:
                 logging.debug("Template file {} already exists. "
                               "Skipping Download.".format(filename))
-                self.rootfs_tarball = filename
+                self.image_tarball = filename
 
         # Insert images
         if self.template_url is not None and self.rootfs_url is not None:
             logging.debug("Importing images into LXD")
-            cmd = 'lxc image import {} rootfs {} --alias {}'.format(
-                self.template_tarball, self.rootfs_tarball,
+            cmd = 'lxc image import {} {} --alias {}'.format(
+                self.template_tarball, self.image_tarball,
                 self.image_alias)
             result = self.run_command(cmd)
             if not result:
@@ -215,34 +215,6 @@ class LXDTest(object):
         self.run_command('lxc image delete {}'.format(self.image_alias))
         self.run_command('lxc delete --force {}'.format(self.name))
 
-    def start(self):
-        """
-        Creates a container and performs the test
-        """
-        result = self.setup()
-        if not result:
-            logging.error("One or more setup stages failed.")
-            return False
-
-        # Create container
-        logging.debug("Launching container")
-        if not self.run_command('lxc launch {} {}'.format(self.image_alias,
-                                                          self.name)):
-            return False
-
-        logging.debug("Container listing:")
-        cmd = ("lxc list")
-        if not self.run_command(cmd):
-            return False
-
-        logging.debug("Testing container")
-        cmd = ("lxc exec {} dd if=/dev/urandom of=testdata.txt "
-               "bs=1024 count=1000".format(self.name))
-        if not self.run_command(cmd):
-            return False
-
-        return True
-
     def start_vm(self):
         """
         Creates an lxd virtutal machine and performs the test
@@ -254,8 +226,8 @@ class LXDTest(object):
 
         # Create container
         logging.debug("Launching container")
-        if not self.run_command('lxc launch {} {} -vm'.format(self.image_alias,
-                                                              self.name)):
+        if not self.run_command('lxc init {} {} --vm'.format(self.image_alias,
+                                                             self.name)):
             return False
 
         logging.debug("Start VM:")
@@ -268,9 +240,14 @@ class LXDTest(object):
         if not self.run_command(cmd):
             return False
 
-        logging.debug("Testing container")
+        logging.debug("Testing virtual machine 1")
         cmd = ("lxc exec {} dd if=/dev/urandom of=testdata.txt "
                "bs=1024 count=1000".format(self.name))
+        if not self.run_command(cmd):
+            return False
+
+        logging.debug("Testing virtual machine 2")
+        cmd = ("lxc exec {} lsb_release -a".format(self.name))
         if not self.run_command(cmd):
             return False
 
@@ -286,16 +263,16 @@ def test_lxd_vm(args):
     # First in priority are environment variables.
     if 'LXD_TEMPLATE' in os.environ:
         template = os.environ['LXD_TEMPLATE']
-    if 'LXD_ROOTFS' in os.environ:
-        rootfs = os.environ['LXD_ROOTFS']
+    if 'KVM_IMAGE' in os.environ:
+        image = os.environ['KVM_IMAGE']
 
     # Finally, highest-priority are command line arguments.
     if args.template:
         template = args.template
-    if args.rootfs:
-        rootfs = args.rootfs
+    if args.image:
+        image = args.image
 
-    lxd_test = LXDTest(template, rootfs)
+    lxd_test = LXDTest_vm(template, image)
 
     result = lxd_test.start_vm()
     lxd_test.cleanup()
