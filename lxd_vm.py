@@ -155,7 +155,7 @@ class LXDTest_vm(object):
                 self.image_tarball = filename
 
         # Insert images
-        if self.template_url is not None and self.rootfs_url is not None:
+        if self.template_url is not None and self.image_url is not None:
             logging.debug("Importing images into LXD")
             cmd = 'lxc image import {} {} --alias {}'.format(
                 self.template_tarball, self.image_tarball,
@@ -240,14 +240,19 @@ class LXDTest_vm(object):
         if not self.run_command(cmd):
             return False
 
-        logging.debug("Testing virtual machine 1")
-        cmd = ("lxc exec {} dd if=/dev/urandom of=testdata.txt "
-               "bs=1024 count=1000".format(self.name))
+#        logging.debug("Testing virtual machine 1")
+#        cmd = ("lxc exec {} -- dd if=/dev/urandom of=testdata.txt "
+#               "bs=1024 count=1000".format(self.name))
+#        if not self.run_command(cmd):
+#            return False
+
+        logging.debug("wait for vm to boot")
+        cmd = ("sleep 30s")
         if not self.run_command(cmd):
             return False
 
         logging.debug("Testing virtual machine 2")
-        cmd = ("lxc exec {} lsb_release -a".format(self.name))
+        cmd = ("lxc exec {} -- uname -a".format(self.name))
         if not self.run_command(cmd):
             return False
 
@@ -285,8 +290,6 @@ def test_lxd_vm(args):
 
 
 def main():
-    logging.debug("Executing LXD KM Test in main")
-
     parser = ArgumentParser(description="Virtualization Test")
     subparsers = parser.add_subparsers()
 
