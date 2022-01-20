@@ -219,6 +219,9 @@ class LXDTest_vm(object):
         """
         Creates an lxd virtutal machine and performs the test
         """
+        wait_interval = 5
+        test_interval = 12
+
         result = self.setup()
         if not result:
             logging.error("One or more setup stages failed.")
@@ -240,21 +243,27 @@ class LXDTest_vm(object):
         if not self.run_command(cmd):
             return False
 
-#        logging.debug("Testing virtual machine 1")
-#        cmd = ("lxc exec {} -- dd if=/dev/urandom of=testdata.txt "
-#               "bs=1024 count=1000".format(self.name))
+        check_vm = 0
+        while check_vm < test_interval:
+            logging.debug("wait for vm to boot")
+            time.sleep(wait_interval)
+            cmd = ("lxc exec {} -- uname -a".format(self.name))
+            if self.run_command(cmd):
+                print("Vm started succefully")
+                break
+            else:
+                check_vm = check_vm + wait_interval
+
+        if check_vm == test_interval:
+            return False
+#        cmd = ("sleep 30s")
 #        if not self.run_command(cmd):
 #            return False
 
-        logging.debug("wait for vm to boot")
-        cmd = ("sleep 30s")
-        if not self.run_command(cmd):
-            return False
-
-        logging.debug("Testing virtual machine 2")
-        cmd = ("lxc exec {} -- uname -a".format(self.name))
-        if not self.run_command(cmd):
-            return False
+#        logging.debug("Testing virtual machine")
+#
+#       if not self.run_command(cmd):
+#            return False
 
         return True
 
