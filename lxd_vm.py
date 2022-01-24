@@ -155,29 +155,29 @@ class LXDTest_vm(object):
                 self.image_tarball = filename
 
         # Insert images
-        if self.template_url is not None and self.image_url is not None:
-            logging.debug("Importing images into LXD")
-            cmd = 'lxc image import {} {} --alias {}'.format(
-                self.template_tarball, self.image_tarball,
-                self.image_alias)
-            result = self.run_command(cmd)
-            if not result:
-                logging.error('Error encountered while attempting to '
-                              'import images into LXD')
-                result = False
-        else:
-            logging.debug("No local image available, attempting to "
-                          "import from default remote.")
-            retry = 2
-            cmd = 'lxc image copy {}{} local: --alias {}'.format(
-                self.default_remote, self.os_version, self.image_alias)
-            result = self.run_command(cmd)
-            while not result and retry > 0:
-                logging.error('Error encountered while attempting to '
-                              'import images from default remote.')
-                logging.error('Retrying up to {} times.'.format(retry))
-                result = self.run_command(cmd)
-                retry -= 1
+#        if self.template_url is not None and self.image_url is not None:
+#            logging.debug("Importing images into LXD")
+#            cmd = 'lxc image import {} {} --alias {}'.format(
+#                self.template_tarball, self.image_tarball,
+#                self.image_alias)
+#            result = self.run_command(cmd)
+#            if not result:
+#                logging.error('Error encountered while attempting to '
+#                              'import images into LXD')
+#                result = False
+#        else:
+#            logging.debug("No local image available, attempting to "
+#                          "import from default remote.")
+#            retry = 2
+#            cmd = 'lxc init {}{} {} --vm'.format(
+#                self.default_remote, self.os_version, self.name)
+#            result = self.run_command(cmd)
+#            while not result and retry > 0:
+#                logging.error('Error encountered while attempting to '
+#                              'import images from default remote.')
+#                logging.error('Retrying up to {} times.'.format(retry))
+#                result = self.run_command(cmd)
+#                retry -= 1
         return result
 
     def download_images(self, url, filename):
@@ -220,7 +220,7 @@ class LXDTest_vm(object):
         Creates an lxd virtutal machine and performs the test
         """
         wait_interval = 5
-        test_interval = 12
+        test_interval = 60
 
         result = self.setup()
         if not result:
@@ -229,8 +229,13 @@ class LXDTest_vm(object):
 
         # Create container
         logging.debug("Launching container")
-        if not self.run_command('lxc init {} {} --vm'.format(self.image_alias,
-                                                             self.name)):
+        if not self.image_url and not self.template_url:
+            cmd = ('lxc init {}{} {} --vm '.format(
+               self.default_remote, self.os_version, self.name))
+        else:
+            cmd = ('lxc init {} {} --vm'.format(self.image_alias, self.name))
+
+        if not self.run_command(cmd):
             return False
 
         logging.debug("Start VM:")
@@ -243,36 +248,28 @@ class LXDTest_vm(object):
         if not self.run_command(cmd):
             return False
 
+        logging.debug("Wait for vm to boot")
         check_vm = 0
         while check_vm < test_interval:
-            logging.debug("wait for vm to boot")
             time.sleep(wait_interval)
-            cmd = ("lxc exec {} -- uname -a".format(self.name))
+            cmd = ("lxc exec {} -- lsb_release -a".format(self.name))
             if self.run_command(cmd):
-                print("Vm started succefully")
-                break
+                print("Vm started and booted succefully")
+                return True
             else:
+                logging.debug("Re-verify VM booted")
                 check_vm = check_vm + wait_interval
 
+        logging.debug("testing vm failed")
         if check_vm == test_interval:
             return False
-#        cmd = ("sleep 30s")
-#        if not self.run_command(cmd):
-#            return False
-
-#        logging.debug("Testing virtual machine")
-#
-#       if not self.run_command(cmd):
-#            return False
-
-        return True
 
 
 def test_lxd_vm(args):
     logging.debug("Executing LXD VM Test")
 
     template = None
-    rootfs = None
+    image = None
 
     # First in priority are environment variables.
     if 'LXD_TEMPLATE' in os.environ:
