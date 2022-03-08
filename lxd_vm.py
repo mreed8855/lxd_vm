@@ -82,10 +82,10 @@ class RunCommand(object):
 class LXDTest_vm(object):
 
     def __init__(self, template=None, image=None):
-        self.image_url = image
-        self.template_url = template
-        self.image_tarball = None
-        self.template_tarball = None
+        self.image_url = None
+        self.template_url = None
+        self.image_tarball = image
+        self.template_tarball = template
         self.name = 'testbed'
         self.image_alias = uuid4().hex
         self.default_remote = "ubuntu:"
@@ -155,29 +155,29 @@ class LXDTest_vm(object):
                 self.image_tarball = filename
 
         # Insert images
-#        if self.template_url is not None and self.image_url is not None:
-#            logging.debug("Importing images into LXD")
-#            cmd = 'lxc image import {} {} --alias {}'.format(
-#                self.template_tarball, self.image_tarball,
-#                self.image_alias)
-#            result = self.run_command(cmd)
-#            if not result:
-#                logging.error('Error encountered while attempting to '
-#                              'import images into LXD')
-#                result = False
-#        else:
-#            logging.debug("No local image available, attempting to "
-#                          "import from default remote.")
-#            retry = 2
-#            cmd = 'lxc init {}{} {} --vm'.format(
-#                self.default_remote, self.os_version, self.name)
-#            result = self.run_command(cmd)
-#            while not result and retry > 0:
-#                logging.error('Error encountered while attempting to '
-#                              'import images from default remote.')
-#                logging.error('Retrying up to {} times.'.format(retry))
-#                result = self.run_command(cmd)
-#                retry -= 1
+        if self.template_url is None and self.image_url is None:
+            logging.debug("Importing images into LXD")
+            cmd = 'lxc image import {} {} --alias {}'.format(
+                self.template_tarball, self.image_tarball,
+                self.image_alias)
+            result = self.run_command(cmd)
+            if not result:
+                logging.error('Error encountered while attempting to '
+                              'import images into LXD')
+                result = False
+        else:
+            logging.debug("No local image available, attempting to "
+                          "import from default remote.")
+            retry = 2
+            cmd = 'lxc init {}{} {} --vm'.format(
+                self.default_remote, self.os_version, self.name)
+            result = self.run_command(cmd)
+            while not result and retry > 0:
+                logging.error('Error encountered while attempting to '
+                              'import images from default remote.')
+                logging.error('Retrying up to {} times.'.format(retry))
+                result = self.run_command(cmd)
+                retry -= 1
         return result
 
     def download_images(self, url, filename):
