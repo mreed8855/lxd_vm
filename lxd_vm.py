@@ -163,19 +163,6 @@ class LXDTest_vm(object):
                 logging.error('Error encountered while attempting to '
                               'import images into LXD')
                 result = False
-        else:
-            logging.debug("No local image available, attempting to "
-                          "import from default remote.")
-            retry = 2
-            cmd = 'lxc init {}{} {} --vm'.format(
-                self.default_remote, self.os_version, self.name)
-            result = self.run_command(cmd)
-            while not result and retry > 0:
-                logging.error('Error encountered while attempting to '
-                              'import images from default remote.')
-                logging.error('Retrying up to {} times.'.format(retry))
-                result = self.run_command(cmd)
-                retry -= 1
         return result
 
     def download_images(self, url, filename):
@@ -218,7 +205,7 @@ class LXDTest_vm(object):
         Creates an lxd virtutal machine and performs the test
         """
         wait_interval = 5
-        test_interval = 120
+        test_interval = 300 
 
         result = self.setup()
         if not result:
@@ -228,6 +215,8 @@ class LXDTest_vm(object):
         # Create Virtual Machine 
         logging.debug("Launching Virtual Machine")
         if not self.image_url and not self.template_url:
+            logging.debug("No local image available, attempting to "
+                          "import from default remote.")
             cmd = ('lxc init {}{} {} --vm '.format(
                self.default_remote, self.os_version, self.name))
         else:
