@@ -26,8 +26,6 @@ import urllib.request
 from urllib.parse import urlparse
 from uuid import uuid4
 
-DEFAULT_TIMEOUT = 500
-
 
 def get_release_to_test():
     try:
@@ -82,10 +80,10 @@ class RunCommand(object):
 class LXDTest_vm(object):
 
     def __init__(self, template=None, image=None):
-        self.image_url = None
-        self.template_url = None
-        self.image_tarball = image
-        self.template_tarball = template
+        self.image_url = image
+        self.template_url = template
+        self.image_tarball = None
+        self.template_tarball = None
         self.name = 'testbed'
         self.image_alias = uuid4().hex
         self.default_remote = "ubuntu:"
@@ -155,7 +153,7 @@ class LXDTest_vm(object):
                 self.image_tarball = filename
 
         # Insert images
-        if self.template_url is None and self.image_url is None:
+        if self.template_url is not None and self.image_url is not None:
             logging.debug("Importing images into LXD")
             cmd = 'lxc image import {} {} --alias {}'.format(
                 self.template_tarball, self.image_tarball,
@@ -209,9 +207,9 @@ class LXDTest_vm(object):
 
     def cleanup(self):
         """
-        Clean up test files an containers created
+        Clean up test files an Virtual Machines created
         """
-        logging.debug('Cleaning up images and containers created during test')
+        logging.debug('Cleaning up images and Virtual Machines created during test')
         self.run_command('lxc image delete {}'.format(self.image_alias))
         self.run_command('lxc delete --force {}'.format(self.name))
 
@@ -220,15 +218,15 @@ class LXDTest_vm(object):
         Creates an lxd virtutal machine and performs the test
         """
         wait_interval = 5
-        test_interval = 60
+        test_interval = 120
 
         result = self.setup()
         if not result:
             logging.error("One or more setup stages failed.")
             return False
 
-        # Create container
-        logging.debug("Launching container")
+        # Create Virtual Machine 
+        logging.debug("Launching Virtual Machine")
         if not self.image_url and not self.template_url:
             cmd = ('lxc init {}{} {} --vm '.format(
                self.default_remote, self.os_version, self.name))
@@ -243,7 +241,7 @@ class LXDTest_vm(object):
         if not self.run_command(cmd):
             return False
 
-        logging.debug("Container listing:")
+        logging.debug("Virtual Machine listing:")
         cmd = ("lxc list")
         if not self.run_command(cmd):
             return False
@@ -288,10 +286,10 @@ def test_lxd_vm(args):
     result = lxd_test.start_vm()
     lxd_test.cleanup()
     if result:
-        print("PASS: Container was succssfully started and checked")
+        print("PASS: Virtual Machine was succssfully started and checked")
         sys.exit(0)
     else:
-        print("FAIL: Container was not started and checked")
+        print("FAIL: Virtual Machine was not started and checked")
         sys.exit(1)
 
 
