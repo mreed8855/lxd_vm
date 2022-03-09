@@ -1,6 +1,20 @@
 #!/usr/bin/env python3
 """
     Test kvm using lxd
+    Usage:
+    URL
+    ./lxd_vm.py --debug lxdvm --template https://cloud-images.ubuntu.com
+    /focal/current/focal-server-cloudimg-amd64-lxd.tar.xz --image https
+    ://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+
+    File
+    ./lxd_vm.py --debug lxdvm --template file:///home/ubuntu/focal-server
+    -cloudimg-amd64-lxd.tar.xz --image  file:///home/ubuntu/focal-server
+    -cloudimg-amd64.img
+
+     Import Images
+    ./lxd_vm.py --debug lxdvm
+
 """
 
 from argparse import ArgumentParser
@@ -196,7 +210,7 @@ class LXDTest_vm(object):
         """
         Clean up test files an Virtual Machines created
         """
-        logging.debug('Cleaning up images and Virtual Machines created during test')
+        logging.debug('Cleaning up images and VMs created during test')
         self.run_command('lxc image delete {}'.format(self.image_alias))
         self.run_command('lxc delete --force {}'.format(self.name))
 
@@ -205,14 +219,14 @@ class LXDTest_vm(object):
         Creates an lxd virtutal machine and performs the test
         """
         wait_interval = 5
-        test_interval = 300 
+        test_interval = 300
 
         result = self.setup()
         if not result:
             logging.error("One or more setup stages failed.")
             return False
 
-        # Create Virtual Machine 
+        # Create Virtual Machine
         logging.debug("Launching Virtual Machine")
         if not self.image_url and not self.template_url:
             logging.debug("No local image available, attempting to "
